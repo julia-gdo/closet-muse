@@ -1,61 +1,54 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
-import { apiJson, refreshAccessToken } from "@/lib/api";
-import { setAccessToken } from "@/lib/auth/tokenStore";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 
 type User = { id: string; email: string };
 
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
-  signup: (email: string, password: string) => Promise<void>;
+  // needsConfirmation: Supabase has "Confirm email" turned on, so there's no session until they click the emailed link
+  signup: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function toUser(session: Session | null): User | null {
+  return session?.user ? { id: session.user.id, email: session.user.email ?? "" } : null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadUser = useCallback(async () => {
-    const me = await apiJson<User>("/auth/me").catch(() => null);
-    setUser(me);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(toUser(data.session));
+      setLoading(false);
+    });
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(toUser(session));
+    });
+    return () => subscription.subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      const refreshed = await refreshAccessToken();
-      if (refreshed) {
-        await loadUser();
-      }
-      setLoading(false);
-    })();
-  }, [loadUser]);
-
   const signup = async (email: string, password: string) => {
-    const body = await apiJson<{ access_token: string }>("/auth/signup", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    setAccessToken(body.access_token);
-    await loadUser();
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+    return { needsConfirmation: data.session === null };
   };
 
   const login = async (email: string, password: string) => {
-    const body = await apiJson<{ access_token: string }>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    setAccessToken(body.access_token);
-    await loadUser();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   };
 
   const logout = async () => {
-    await apiJson("/auth/logout", { method: "POST" }).catch(() => undefined);
-    setAccessToken(null);
+    await supabase.auth.signOut();
     setUser(null);
   };
 

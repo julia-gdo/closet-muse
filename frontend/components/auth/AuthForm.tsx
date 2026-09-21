@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { ApiError } from "@/lib/api";
 
 type Mode = "login" | "signup";
 
@@ -31,22 +30,28 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const copy = COPY[mode];
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
+    setNotice(null);
     setSubmitting(true);
     try {
       if (mode === "signup") {
-        await signup(email, password);
+        const { needsConfirmation } = await signup(email, password);
+        if (needsConfirmation) {
+          setNotice("Check your email for a confirmation link, then log in.");
+          return;
+        }
       } else {
         await login(email, password);
       }
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -92,6 +97,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
         </label>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
+        {notice && <p className="text-sm text-ink/80">{notice}</p>}
 
         <button
           type="submit"

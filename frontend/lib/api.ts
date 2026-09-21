@@ -1,4 +1,4 @@
-import { getAccessToken, getCsrfToken, setAccessToken } from "@/lib/auth/tokenStore";
+import { supabase } from "@/lib/supabase";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -34,23 +34,10 @@ async function parseErrorMessage(response: Response): Promise<string> {
   }
 }
 
-export async function refreshAccessToken(): Promise<boolean> {
-  const response = await fetch(`${API_URL}/auth/refresh`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "X-CSRF-Token": getCsrfToken() ?? "" },
-  });
-  if (!response.ok) {
-    setAccessToken(null);
-    return false;
-  }
-  const body = await response.json();
-  setAccessToken(body.access_token);
-  return true;
-}
-
 export async function apiFetch(path: string, options: RequestInit = {}, retry = true): Promise<Response> {
-  const accessToken = getAccessToken();
+  // supabase-js refreshes the access token in the background, so getSession() is current
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
   const headers = new Headers(options.headers);
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
@@ -59,15 +46,11 @@ export async function apiFetch(path: string, options: RequestInit = {}, retry = 
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-    credentials: "include",
-  });
+  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
 
   if (response.status === 401 && retry) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    if (refreshed.session) {
       return apiFetch(path, options, false);
     }
   }

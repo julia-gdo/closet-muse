@@ -34,7 +34,7 @@ async def seed(email: str) -> None:
     settings = get_settings()
     pool = await init_pool(settings.database_url)
 
-    user = await pool.fetchrow("SELECT id FROM users WHERE email = $1", email)
+    user = await pool.fetchrow("SELECT id FROM users WHERE email = $1 ORDER BY created_at DESC LIMIT 1", email)
     if user is None:
         print(f"No user found with email {email}")
         await close_pool()
