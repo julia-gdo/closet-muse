@@ -1,0 +1,40 @@
+# Environment variables & secrets — NEVER commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.cert
+secrets.json
+credentials.json
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.turbo/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+env/
+*.egg-info/
+
+# Databases & local data
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

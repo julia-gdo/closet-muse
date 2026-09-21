@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  --color-pink: #db89a9;
+  --color-pink-light: #f7c6d9;
+  --color-cream: #fdf6ec;
+  --color-ink: #3a2a30;
+}
+
+@theme inline {
+  --color-pink: var(--color-pink);
+  --color-pink-light: var(--color-pink-light);
+  --color-cream: var(--color-cream);
+  --color-ink: var(--color-ink);
+  --font-body: var(--font-body);
+  --font-playful: var(--font-playful);
+  --font-ringus: var(--font-ringus);
+}
+
+body {
+  font-family: var(--font-body), sans-serif;
+}
+
+.text-stroke-white {
+  -webkit-text-stroke: 7px white;
+  paint-order: stroke fill;
+}
+
+.text-stroke-white-thin {
+  -webkit-text-stroke: 1px white;
+  paint-order: stroke fill;
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.page-fade-in {
+  animation: page-fade-in 1s ease-out;
+}
+
+.bg-stripes {
+  background-image: repeating-linear-gradient(
+    90deg,
+    #fefcf9 0px,
+    #fefcf9 60px,
+    #f8e8ee 60px,
+    #f8e8ee 120px
+  );
+}
